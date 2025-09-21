@@ -131,6 +131,8 @@ return [
 
         // <-- TAMBAHKAN BARIS INI untuk Barcode Facade
         'Barcode' => Milon\Barcode\Facades\Barcode::class,
+        'DNS1D' => Milon\Barcode\Facades\DNS1DFacade::class,
+        'DNS2D' => Milon\Barcode\Facades\DNS2DFacade::class,
 
     ])->toArray(),
 
