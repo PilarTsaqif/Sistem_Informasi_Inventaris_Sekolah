@@ -11,26 +11,20 @@ class Ruangan extends Model
 
     protected $fillable = [
         'kode_ruangan',
-        'nama_ruangan',
+        'kode_rps',
         'id_jurusan',
+        'nama_ruangan',
     ];
 
-    /**
-     * Relasi ke Jurusan.
-     * Satu ruangan dimiliki oleh satu jurusan.
-     */
     public function jurusan()
     {
         return $this->belongsTo(Jurusan::class, 'id_jurusan');
     }
 
-    /**
-     * Relasi many-to-many ke Barang (Fasilitas).
-     * Satu ruangan bisa memiliki banyak barang.
-     */
     public function barangs()
     {
         return $this->belongsToMany(Barang::class, 'barang_ruangan', 'ruangan_id', 'kode_barang')
-                    ->withPivot('jumlah', 'created_at');
+                    ->withPivot('jumlah')
+                    ->withTimestamps();
     }
 }

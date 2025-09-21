@@ -4,78 +4,63 @@ namespace App\Http\Controllers;
 
 use App\Models\Satuan;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\DB;
 
 class SatuanController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth');
+        $this->middleware('role:TOOLMAN')->except(['index', 'show']);
+    }
+    
     public function index()
     {
-        if (!Gate::allows('is-toolman')) abort(403);
-        
-        // Menggunakan withCount untuk menghitung jumlah barang per satuan
-        $satuans = Satuan::withCount('barangs')->latest('id')->paginate(10);
-        return view('satuan.index', compact('satuans'));
+        $satuans = Satuan::all();
+        return view('master.satuan.index', compact('satuans'));
     }
-
+    
     public function create()
     {
-        if (!Gate::allows('is-toolman')) abort(403);
-        return view('satuan.create');
+        return view('master.satuan.create');
     }
 
     public function store(Request $request)
     {
-        if (!Gate::allows('is-toolman')) abort(403);
-
-        $request->validate([
-            'nama_satuan' => 'required|string|max:50|unique:satuans,nama_satuan',
-        ], [
-            'nama_satuan.unique' => 'Nama satuan ini sudah ada.'
-        ]);
-
+        $request->validate(['nama_satuan' => 'required|string|unique:satuans,nama_satuan|max:50']);
         Satuan::create($request->all());
-
-        return redirect()->route('satuan.index')->with('success', 'Satuan baru berhasil ditambahkan.');
+        return redirect()->route('master.satuan.index')->with('success', 'Satuan berhasil ditambahkan.');
     }
 
     public function show(Satuan $satuan)
     {
-        // Tampilan 'show' tidak diperlukan untuk data sesederhana ini.
-        return redirect()->route('satuan.index');
+        return view('master.satuan.show', compact('satuan'));
     }
-
+    
     public function edit(Satuan $satuan)
     {
-        if (!Gate::allows('is-toolman')) abort(403);
-        return view('satuan.edit', compact('satuan'));
+        return view('master.satuan.edit', compact('satuan'));
     }
 
     public function update(Request $request, Satuan $satuan)
     {
-        if (!Gate::allows('is-toolman')) abort(403);
-
-        $request->validate([
-            'nama_satuan' => 'required|string|max:50|unique:satuans,nama_satuan,' . $satuan->id,
-        ], [
-            'nama_satuan.unique' => 'Nama satuan ini sudah ada.'
-        ]);
-
+        $request->validate(['nama_satuan' => 'required|string|max:50|unique:satuans,nama_satuan,' . $satuan->id]);
         $satuan->update($request->all());
-
-        return redirect()->route('satuan.index')->with('success', 'Satuan berhasil diperbarui.');
+        return redirect()->route('master.satuan.index')->with('success', 'Satuan berhasil diperbarui.');
     }
 
     public function destroy(Satuan $satuan)
     {
-        if (!Gate::allows('is-toolman')) abort(403);
-        
-        // Pencegahan hapus jika satuan masih digunakan oleh data barang atau peminjaman
-        if ($satuan->barangs()->exists() || $satuan->peminjamans()->exists()) {
-            return redirect()->route('satuan.index')->with('error', 'Satuan tidak dapat dihapus karena masih digunakan oleh data lain.');
+        // Cek apakah satuan digunakan di tabel lain
+        $isUsedInBarang = DB::table('barangs')->where('id_satuanbarang', $satuan->id)->exists();
+        $isUsedInBarangMasuk = DB::table('barangmasuks')->where('id_satuan', $satuan->id)->exists();
+        $isUsedInPeminjaman = DB::table('peminjamans')->where('id_satuan_pjm', $satuan->id)->exists();
+
+        if ($isUsedInBarang || $isUsedInBarangMasuk || $isUsedInPeminjaman) {
+             return redirect()->route('master.satuan.index')->with('error', 'Satuan tidak bisa dihapus karena sedang digunakan.');
         }
 
         $satuan->delete();
-
-        return redirect()->route('satuan.index')->with('success', 'Satuan berhasil dihapus.');
+        return redirect()->route('master.satuan.index')->with('success', 'Satuan berhasil dihapus.');
     }
 }

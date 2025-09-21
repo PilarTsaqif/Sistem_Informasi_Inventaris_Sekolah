@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class BarangKeluar extends Model
 {
     use HasFactory;
-
+    
     protected $table = 'barangkeluars';
 
     protected $fillable = [
@@ -22,13 +22,8 @@ class BarangKeluar extends Model
         'id_user',
     ];
 
-    protected $casts = [
-        'tgl_keluar' => 'date',
-    ];
-
     /**
-     * Relasi ke tabel BarangMasuks.
-     * Setiap catatan barang keluar berasal dari satu batch barang masuk.
+     * Relasi ke batch BarangMasuk.
      */
     public function barangMasuk()
     {
@@ -36,7 +31,7 @@ class BarangKeluar extends Model
     }
 
     /**
-     * Relasi ke tabel Users.
+     * Relasi ke User yang menginput.
      */
     public function user()
     {

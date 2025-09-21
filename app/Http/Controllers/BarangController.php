@@ -3,90 +3,80 @@
 namespace App\Http\Controllers;
 
 use App\Models\Barang;
-use App\Models\Satuan;
 use App\Models\KategoriBarang;
+use App\Models\Satuan;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Gate;
 
 class BarangController extends Controller
 {
+    /**
+     * Terapkan middleware otorisasi pada constructor.
+     * Semua user bisa melihat data (index, show).
+     * Hanya TOOLMAN yang bisa mengelola (create, store, edit, update, destroy).
+     */
+    public function __construct()
+    {
+        $this->middleware('auth');
+        $this->middleware('role:TOOLMAN')->except(['index', 'show']);
+    }
+
     public function index()
     {
-        $barangs = Barang::with(['satuan', 'kategoriBarang'])->latest()->paginate(10);
-        return view('barang.index', compact('barangs'));
+        $barangs = Barang::with('kategori', 'satuan')->latest()->get();
+        return view('master.barang.index', compact('barangs'));
     }
 
     public function create()
     {
-        if (!Gate::allows('is-toolman')) abort(403);
-        
-        $satuans = Satuan::orderBy('nama_satuan')->get();
-        $kategoriBarangs = KategoriBarang::orderBy('nama_kategori')->get();
-        
-        return view('barang.create', compact('satuans', 'kategoriBarangs'));
+        $kategoris = KategoriBarang::all();
+        $satuans = Satuan::all();
+        return view('master.barang.create', compact('kategoris', 'satuans'));
     }
 
     public function store(Request $request)
     {
-        if (!Gate::allows('is-toolman')) abort(403);
-
         $request->validate([
-            'kode_barang' => 'required|string|max:50|unique:barangs,kode_barang',
+            'kode_barang' => 'required|string|unique:barangs,kode_barang|max:50',
             'nama_barang' => 'required|string|max:100',
-            'kategori_barang_id' => 'required|exists:kategori_barangs,id',
+            'kategori_barang_id' => 'nullable|exists:kategori_barangs,id',
             'id_satuanbarang' => 'required|exists:satuans,id',
-            'info_maintenance' => 'nullable|string|max:255',
-            'stok_minimal' => 'required|integer|min:0',
         ]);
 
         Barang::create($request->all());
-
-        return redirect()->route('barang.index')->with('success', 'Barang baru berhasil ditambahkan.');
+        return redirect()->route('master.barang.index')->with('success', 'Data barang berhasil ditambahkan.');
     }
 
     public function show(Barang $barang)
     {
-        return view('barang.show', compact('barang'));
+        return view('master.barang.show', compact('barang'));
     }
 
     public function edit(Barang $barang)
     {
-        if (!Gate::allows('is-toolman')) abort(403);
-        
-        $satuans = Satuan::orderBy('nama_satuan')->get();
-        $kategoriBarangs = KategoriBarang::orderBy('nama_kategori')->get();
-        
-        return view('barang.edit', compact('barang', 'satuans', 'kategoriBarangs'));
+        $kategoris = KategoriBarang::all();
+        $satuans = Satuan::all();
+        return view('master.barang.edit', compact('barang', 'kategoris', 'satuans'));
     }
 
     public function update(Request $request, Barang $barang)
     {
-        if (!Gate::allows('is-toolman')) abort(403);
-
         $request->validate([
             'nama_barang' => 'required|string|max:100',
-            'kategori_barang_id' => 'required|exists:kategori_barangs,id',
+            'kategori_barang_id' => 'nullable|exists:kategori_barangs,id',
             'id_satuanbarang' => 'required|exists:satuans,id',
-            'info_maintenance' => 'nullable|string|max:255',
-            'stok_minimal' => 'required|integer|min:0',
         ]);
 
         $barang->update($request->all());
-
-        return redirect()->route('barang.index')->with('success', 'Data barang berhasil diperbarui.');
+        return redirect()->route('master.barang.index')->with('success', 'Data barang berhasil diperbarui.');
     }
 
     public function destroy(Barang $barang)
     {
-        if (!Gate::allows('is-toolman')) abort(403);
-        
-        if ($barang->barangMasuks()->exists() || $barang->peminjamans()->exists()) {
-            return redirect()->route('barang.index')
-                   ->with('error', 'Barang tidak dapat dihapus karena sudah memiliki riwayat transaksi.');
+        try {
+            $barang->delete();
+            return redirect()->route('master.barang.index')->with('success', 'Data barang berhasil dihapus.');
+        } catch (\Exception $e) {
+            return redirect()->route('master.barang.index')->with('error', 'Gagal menghapus data karena terikat dengan data lain.');
         }
-
-        $barang->delete();
-
-        return redirect()->route('barang.index')->with('success', 'Data barang berhasil dihapus.');
     }
 }

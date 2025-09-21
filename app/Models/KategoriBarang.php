@@ -10,15 +10,8 @@ class KategoriBarang extends Model
     use HasFactory;
 
     protected $table = 'kategori_barangs';
+    protected $fillable = ['nama_kategori'];
 
-    protected $fillable = [
-        'nama_kategori',
-    ];
-
-    /**
-     * Mendefinisikan relasi one-to-many ke model Barang.
-     * Satu kategori bisa dimiliki oleh banyak barang.
-     */
     public function barangs()
     {
         return $this->hasMany(Barang::class, 'kategori_barang_id');

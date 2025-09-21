@@ -4,44 +4,35 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Barang;
-use App\Models\BarangMasuk;
-use App\Models\BarangKeluar;
 use App\Models\Peminjaman;
-use Illuminate\Support\Facades\DB;
+use App\Models\User;
 
 class DashboardController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth');
+    }
+
     public function index()
     {
-        // 1. Menghitung total jenis barang
         $totalBarang = Barang::count();
-
-        // 2. Menghitung jumlah stok menipis
-        $stokMenipis = Barang::select('barangs.*')
-            ->withSum('barangMasuks as total_masuk', 'jumlah_masuk')
-            ->withSum('barangKeluars as total_keluar', 'jumlah_keluar')
-            ->get()
-            ->filter(function ($barang) {
-                $stok_akhir = ($barang->total_masuk ?? 0) - ($barang->total_keluar ?? 0);
-                return $stok_akhir > 0 && $stok_akhir <= $barang->stok_minimal;
-            })
-            ->count();
-
-        // 3. Menghitung jumlah peminjaman yang masih aktif (belum dikembalikan)
+        $totalUser = User::count();
         $peminjamanAktif = Peminjaman::whereDoesntHave('pengembalian')->count();
-        
-        // 4. Mengambil 5 transaksi barang masuk terbaru
-        $barangMasukTerbaru = BarangMasuk::with('barang')->latest()->take(5)->get();
-        
-        // 5. Mengambil 5 transaksi barang keluar terbaru
-        $barangKeluarTerbaru = BarangKeluar::with('barangMasuk.barang')->latest()->take(5)->get();
+        $stokMenipis = Barang::all()->filter(function ($barang) {
+            $totalMasuk = $barang->barangMasuk()->sum('jumlah_masuk');
+            $totalKeluar = \App\Models\BarangKeluar::whereHas('barangMasuk', fn($q) => $q->where('kode_barang', $barang->kode_barang))->sum('jumlah_keluar');
+            $stokAkhir = $totalMasuk - $totalKeluar;
+            $stokMinimal = $barang->barangMasuk()->latest()->first()->stok_minimal ?? 0;
+            return $stokAkhir > 0 && $stokAkhir <= $stokMinimal;
+        })->count();
 
+        // [PERBAIKAN] Kirim variabel secara individual menggunakan compact()
         return view('dashboard', compact(
-            'totalBarang',
-            'stokMenipis',
+            'totalBarang', 
+            'totalUser', 
             'peminjamanAktif',
-            'barangMasukTerbaru',
-            'barangKeluarTerbaru'
+            'stokMenipis'
         ));
     }
 }

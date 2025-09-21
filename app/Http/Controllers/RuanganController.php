@@ -5,64 +5,71 @@ namespace App\Http\Controllers;
 use App\Models\Ruangan;
 use App\Models\Jurusan;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Gate;
 
 class RuanganController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth');
+        $this->middleware('role:TOOLMAN')->except(['index', 'show']);
+    }
+    
     public function index()
     {
-        $ruangans = Ruangan::with('jurusan')->withCount('barangs')->latest()->paginate(10);
-        return view('ruangan.index', compact('ruangans'));
+        $ruangans = Ruangan::with('jurusan')->get();
+        return view('master.ruangan.index', compact('ruangans'));
     }
 
     public function create()
     {
-        if (!Gate::allows('is-toolman')) abort(403);
-        $jurusans = Jurusan::orderBy('nama_jurusan')->get();
-        return view('ruangan.create', compact('jurusans'));
+        $jurusans = Jurusan::all();
+        return view('master.ruangan.create', compact('jurusans'));
     }
 
     public function store(Request $request)
     {
-        if (!Gate::allows('is-toolman')) abort(403);
         $request->validate([
-            'kode_ruangan' => 'required|string|max:50|unique:ruangans,kode_ruangan',
-            'nama_ruangan' => 'required|string|max:100',
+            'kode_ruangan' => 'required|string|unique:ruangans,kode_ruangan',
+            'nama_ruangan' => 'required|string|max:50',
             'id_jurusan' => 'nullable|exists:jurusans,id',
+            'kode_rps' => 'nullable|string|max:50',
         ]);
+
         Ruangan::create($request->all());
-        return redirect()->route('ruangan.index')->with('success', 'Ruangan baru berhasil ditambahkan.');
+        return redirect()->route('master.ruangan.index')->with('success', 'Ruangan berhasil ditambahkan.');
     }
 
-    // Halaman show untuk Ruangan dialihkan ke halaman Fasilitas
+    /**
+     * [DIPERBARUI] Method show kini menampilkan halaman detail.
+     */
     public function show(Ruangan $ruangan)
     {
-        return redirect()->route('fasilitas.index', $ruangan->id);
+        // Eager load relasi jurusan dan barangs (fasilitas)
+        $ruangan->load('jurusan', 'barangs.satuan');
+        return view('master.ruangan.show', compact('ruangan'));
     }
 
     public function edit(Ruangan $ruangan)
     {
-        if (!Gate::allows('is-toolman')) abort(403);
-        $jurusans = Jurusan::orderBy('nama_jurusan')->get();
-        return view('ruangan.edit', compact('ruangan', 'jurusans'));
+        $jurusans = Jurusan::all();
+        return view('master.ruangan.edit', compact('ruangan', 'jurusans'));
     }
 
     public function update(Request $request, Ruangan $ruangan)
     {
-        if (!Gate::allows('is-toolman')) abort(403);
         $request->validate([
-            'kode_ruangan' => 'required|string|max:50|unique:ruangans,kode_ruangan,' . $ruangan->id,
-            'nama_ruangan' => 'required|string|max:100',
+            'nama_ruangan' => 'required|string|max:50',
             'id_jurusan' => 'nullable|exists:jurusans,id',
+            'kode_rps' => 'nullable|string|max:50',
         ]);
+
         $ruangan->update($request->all());
-        return redirect()->route('ruangan.index')->with('success', 'Data ruangan berhasil diperbarui.');
+        return redirect()->route('master.ruangan.index')->with('success', 'Ruangan berhasil diperbarui.');
     }
 
     public function destroy(Ruangan $ruangan)
     {
-        if (!Gate::allows('is-toolman')) abort(403);
         $ruangan->delete();
-        return redirect()->route('ruangan.index')->with('success', 'Data ruangan berhasil dihapus.');
+        return redirect()->route('master.ruangan.index')->with('success', 'Ruangan berhasil dihapus.');
     }
 }

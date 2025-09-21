@@ -20,11 +20,9 @@ class Pengembalian extends Model
         'kondisi',
     ];
 
-    protected $casts = [
-        'tanggal_pengembalian' => 'date',
-    ];
-    
-    // Relasi ke Peminjaman
+    /**
+     * Relasi ke Peminjaman.
+     */
     public function peminjaman()
     {
         return $this->belongsTo(Peminjaman::class, 'id_peminjaman');

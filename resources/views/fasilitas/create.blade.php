@@ -1,15 +1,44 @@
 @extends('layouts.app')
-@section('title', 'Tambah Fasilitas')
+
+@section('title', 'Tambah Fasilitas ke Ruangan')
+
 @section('content')
-<div class="max-w-2xl mx-auto bg-white rounded-lg shadow-lg p-6">
-    <h2 class="text-2xl font-bold text-gray-800 mb-2">Tambah Fasilitas</h2>
-    <p class="text-sm text-gray-500 mb-6">Untuk Ruangan: <span class="font-semibold">{{ $ruangan->nama_ruangan }}</span></p>
-    @if ($errors->any())<div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4" role="alert"><ul class="list-disc list-inside text-sm">@foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
-    <form action="{{ route('fasilitas.store', $ruangan->id) }}" method="POST" class="space-y-6">
+<div class="bg-white rounded-lg shadow-lg p-6 max-w-lg mx-auto">
+    <h2 class="text-2xl font-bold text-gray-800">Tambah Fasilitas</h2>
+    <p class="text-sm text-gray-500 mb-6">ke Ruangan: <span class="font-semibold">{{ $ruangan->nama_ruangan }}</span></p>
+
+    <form action="{{ route('fasilitas.store', $ruangan) }}" method="POST">
         @csrf
-        <div><label for="kode_barang" class="block text-sm font-medium text-gray-700">Pilih Barang</label><select name="kode_barang" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm"><option value="">-- Pilih Barang --</option>@foreach($barangTersedia as $barang)<option value="{{ $barang->kode_barang }}">{{ $barang->nama_barang }}</option>@endforeach</select></div>
-        <div><label for="jumlah" class="block text-sm font-medium text-gray-700">Jumlah</label><input type="number" name="jumlah" value="1" min="1" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm"></div>
-        <div class="flex justify-end space-x-4 pt-4 border-t mt-6"><a href="{{ route('fasilitas.index', $ruangan->id) }}" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 font-medium">Batal</a><button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 font-medium">Tambah</button></div>
+        <div class="grid grid-cols-1 gap-6">
+            {{-- Barang --}}
+            <div>
+                <label for="kode_barang" class="block text-sm font-medium text-gray-700">Pilih Barang <span class="text-red-600">*</span></label>
+                <select name="kode_barang" id="kode_barang" required
+                        class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm">
+                    <option value="">Pilih barang yang akan ditambahkan</option>
+                    @foreach($barangTersedia as $barang)
+                        <option value="{{ $barang->kode_barang }}" {{ old('kode_barang') == $barang->kode_barang ? 'selected' : '' }}>
+                            {{ $barang->nama_barang }} ({{ $barang->kode_barang }})
+                        </option>
+                    @endforeach
+                </select>
+                @error('kode_barang') <span class="text-red-500 text-sm mt-1">{{ $message }}</span> @enderror
+            </div>
+
+            {{-- Jumlah --}}
+            <div>
+                <label for="jumlah" class="block text-sm font-medium text-gray-700">Jumlah <span class="text-red-600">*</span></label>
+                <input type="number" name="jumlah" id="jumlah" value="{{ old('jumlah', 1) }}" min="1" required
+                       class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm">
+                @error('jumlah') <span class="text-red-500 text-sm mt-1">{{ $message }}</span> @enderror
+            </div>
+        </div>
+
+        {{-- TOMBOL AKSI --}}
+        <div class="mt-8 flex justify-end space-x-3">
+            <a href="{{ route('fasilitas.index', $ruangan) }}" class="inline-flex items-center px-4 py-2 bg-gray-200 border rounded-md font-semibold text-xs text-gray-700 uppercase hover:bg-gray-300">Batal</a>
+            <button type="submit" class="inline-flex items-center px-4 py-2 bg-blue-600 border rounded-md font-semibold text-xs text-white uppercase hover:bg-blue-700">Simpan</button>
+        </div>
     </form>
 </div>
 @endsection

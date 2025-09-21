@@ -1,10 +1,9 @@
-@props(['active' => false])
+@props(['active'])
 
 @php
-// Menentukan kelas CSS berdasarkan kondisi 'active' atau tidak
 $classes = ($active ?? false)
-            ? 'flex items-center px-4 py-2.5 rounded-lg bg-blue-600 text-white shadow-md transition-colors duration-200 ease-in-out'
-            : 'flex items-center px-4 py-2.5 rounded-lg text-gray-600 hover:bg-blue-50 hover:text-blue-700 transition-colors duration-200 ease-in-out';
+            ? 'flex items-center px-2 py-2 text-sm font-medium text-blue-700 bg-blue-50 rounded-md group'
+            : 'flex items-center px-2 py-2 text-sm font-medium text-gray-600 rounded-md group hover:bg-gray-100 hover:text-gray-900';
 @endphp
 
 <a {{ $attributes->merge(['class' => $classes]) }}>

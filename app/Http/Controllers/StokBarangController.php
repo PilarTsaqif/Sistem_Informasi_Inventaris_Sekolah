@@ -2,41 +2,54 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Barang;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use App\Models\Barang;
 
 class StokBarangController extends Controller
 {
     /**
-     * Menampilkan laporan stok barang.
+     * Hanya role tertentu yang bisa melihat laporan stok.
      */
-    public function index()
+    public function __construct()
     {
-        // Mengambil semua data barang beserta relasinya
-        // dan hitung total barang masuk & keluar menggunakan withSum
-        $stokBarangs = Barang::with(['satuan', 'kategoriBarang'])
-            ->withSum('barangMasuks as total_masuk', 'jumlah_masuk')
-            ->withSum('barangKeluars as total_keluar', 'jumlah_keluar')
-            ->latest('kode_barang')
-            ->paginate(15);
-
-        return view('stok-barang.index', compact('stokBarangs'));
+        $this->middleware('auth');
+        $this->middleware('role:TOOLMAN,KAPRODI,GURU');
     }
 
-    /**
-     * Menampilkan detail riwayat stok untuk satu barang.
-     */
+    public function index()
+    {
+        $stokBarangs = Barang::with('satuan', 'kategori')
+            ->withCount(['barangMasuk as total_masuk' => fn($q) => $q->select(DB::raw('sum(jumlah_masuk)'))])
+            ->withCount(['barangMasuk as total_keluar' => fn($q) => 
+                $q->select(DB::raw('sum(barangkeluars.jumlah_keluar)'))
+                  ->join('barangkeluars', 'barangmasuks.id', '=', 'barangkeluars.id_barangmasuk')
+            ])
+            ->get()
+            ->map(function ($item) {
+                $item->stok_akhir = $item->total_masuk - $item->total_keluar;
+                $lastBatch = $item->barangMasuk()->latest('tgl_masuk')->first();
+                $stokMinimal = $lastBatch ? $lastBatch->stok_minimal : 0;
+                
+                if ($item->stok_akhir <= 0) $item->status = 'Habis';
+                elseif ($item->stok_akhir <= $stokMinimal) $item->status = 'Menipis';
+                else $item->status = 'Aman';
+                
+                return $item;
+            });
+            
+        return view('laporan.stok-barang.index', compact('stokBarangs'));
+    }
+    
     public function show(Barang $barang)
     {
-        // Mengambil riwayat transaksi untuk barang yang dipilih
-        $riwayat_masuk = $barang->barangMasuks()->with('user', 'pemasok')->latest('tgl_masuk')->get();
-        $riwayat_keluar = $barang->barangKeluars()->with('user')->latest('tgl_keluar')->get();
-        
-        // Menghitung total
-        $total_masuk = $riwayat_masuk->sum('jumlah_masuk');
-        $total_keluar = $riwayat_keluar->sum('jumlah_keluar');
-        $stok_saat_ini = $total_masuk - $total_keluar;
-
-        return view('stok-barang.show', compact('barang', 'riwayat_masuk', 'riwayat_keluar', 'stok_saat_ini'));
+        // Detail stok untuk satu barang, per batch masuk
+        $detailStok = BarangMasuk::where('kode_barang', $barang->kode_barang)
+            ->with('pemasok')
+            ->withSum('barangKeluar', 'jumlah_keluar')
+            ->latest('tgl_masuk')
+            ->get();
+            
+        return view('laporan.stok-barang.show', compact('barang', 'detailStok'));
     }
 }

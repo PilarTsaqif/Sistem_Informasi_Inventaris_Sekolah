@@ -22,23 +22,24 @@ class Peminjaman extends Model
         'kondisi',
     ];
 
-    protected $casts = [
-        'tanggal_peminjaman' => 'date',
-    ];
-
+    /**
+     * Relasi ke master Barang.
+     */
     public function barang()
     {
         return $this->belongsTo(Barang::class, 'kode_barang', 'kode_barang');
     }
 
+    /**
+     * Relasi ke Satuan.
+     */
     public function satuan()
     {
         return $this->belongsTo(Satuan::class, 'id_satuan_pjm');
     }
 
     /**
-     * Relasi untuk mengecek status pengembalian.
-     * Satu peminjaman hanya memiliki satu catatan pengembalian.
+     * Relasi ke Pengembalian.
      */
     public function pengembalian()
     {

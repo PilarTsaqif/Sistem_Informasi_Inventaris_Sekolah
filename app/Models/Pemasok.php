@@ -8,13 +8,10 @@ use Illuminate\Database\Eloquent\Model;
 class Pemasok extends Model
 {
     use HasFactory;
-    
-    protected $table = 'pemasoks';
-
     protected $fillable = ['nama_pemasok'];
 
-    public function barangMasuks()
+    public function barangMasuk()
     {
-        return $this->hasMany(BarangMasuk::class, 'pemasok_id');
+        return $this->hasMany(BarangMasuk::class);
     }
 }

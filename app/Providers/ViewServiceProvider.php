@@ -2,29 +2,39 @@
 
 namespace App\Providers;
 
+use App\Models\Ruangan;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
-use App\Models\Ruangan; // Import model Ruangan
-use Illuminate\Support\Facades\Schema; // Import Schema
+use Illuminate\Support\Facades\Schema;
 
 class ViewServiceProvider extends ServiceProvider
 {
-    public function register(): void
+    /**
+     * Register any application services.
+     *
+     * @return void
+     */
+    public function register()
     {
         //
     }
 
-    public function boot(): void
+    /**
+     * Bootstrap any application services.
+     *
+     * @return void
+     */
+    public function boot()
     {
-        // Gunakan View Composer untuk mengirim data ke view sidebar
-        // setiap kali view tersebut dimuat.
+        // Menggunakan View Composer untuk mem-passing data ke view tertentu
+        // Kode ini akan berjalan setiap kali view 'layouts.partials.sidebar' dipanggil
         View::composer('layouts.partials.sidebar', function ($view) {
-            // Cek apakah tabel ruangans ada untuk menghindari error saat migrasi awal
+            // Pengecekan ini untuk menghindari error saat menjalankan migrate
             if (Schema::hasTable('ruangans')) {
-                $ruangansForSidebar = Ruangan::orderBy('nama_ruangan')->get();
-                $view->with('ruangansForSidebar', $ruangansForSidebar);
+                 // Mengambil data ruangan dan menyediakannya sebagai variabel '$ruangansForSidebar'
+                $view->with('ruangansForSidebar', Ruangan::orderBy('nama_ruangan')->get());
             } else {
-                $view->with('ruangansForSidebar', collect()); // Kirim koleksi kosong jika tabel belum ada
+                $view->with('ruangansForSidebar', collect());
             }
         });
     }
